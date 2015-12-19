@@ -23,7 +23,6 @@ A=[1-(m1*cp1+k*s)*dt/(M1*cp1)  k*s*dt/(M1*cp1)
  B=[m1*cp1*dt/(M1*cp1)   0
       0    m2*cp2*dt/(M2*cp2)];
   
-x=zeros(2,100);
 x(:,1)=[305
       330];
 u=[290
@@ -38,13 +37,33 @@ I=[1 0
 O = zeros(2,2);
 
 %==========================================================================
-%the augmented state matrix
-A_a=[A,O;
-     O,I];
+%get the state matrix
+%[Uw_k      1      0                         0                     0                            0  0  0  0
+% Ub_k   =  0      1                         0                     0                            0  0  0  0
+% Tow_k     m1*cp1 0                   1-(m1*cp1+k*s)*dt/(M1*cp1)  k*s*dt/(M1*cp1)              0  0  0  0
+% Tob_k     0      m2*cp2*dt/(M2*cp2)  k*s*dt/(M2*cp2)             1-(m2*cp2+k*s)*dt/(M2*cp2)   0  0  0  0
+% beta_wk   0      0                         0                     0                            1  0  0  0
+% beta_bk   0      0                         0                     0                            0  1  0  0
+% beta_o1k  0      0                         0                     0                            0  0  1  0
+% beta_02k  0      0                         0                     0                            0  0  0  1
+%]
 
-B_a=[B;O];
-%==========================================================================
+A_star=[1      0                         0                     0                            0  0  0  0;
+        0      1                         0                     0                            0  0  0  0;
+        m1*cp1 0                   1-(m1*cp1+k*s)*dt/(M1*cp1)  k*s*dt/(M1*cp1)              0  0  0  0;
+        0      m2*cp2*dt/(M2*cp2)  k*s*dt/(M2*cp2)             1-(m2*cp2+k*s)*dt/(M2*cp2)   0  0  0  0;
+        0      0                         0                     0                            1  0  0  0;
+        0      0                         0                     0                            0  1  0  0;
+        0      0                         0                     0                            0  0  1  0;
+        0      0                         0                     0                            0  0  0  1
+        ]
+        
+H_star=[eye(4,4),zeros(4,4)];%this means no gross error.
 
+
+Q_state=0.01*eyes(4);%where [290,350,305,330] is the true value
+
+w_state=sqrt(Q_state)*randn(4,N);
 
 
 %===========get the random walk data=======================
@@ -53,19 +72,36 @@ B_a=[B;O];
 %error
 
 %-----------------
-w_beta=zeros(2,N);
-Q_beta=36;
-w_beta(1,:)=normrnd(0,Q_beta,1,50);
-w_beta(2,:)=normrnd(0,Q_beta,1,50);
+Q_beta=5*Q_state;
+w_beta=sqrt(Q_beta)*randn(4,N);
 %-----------------
-Beta=zeros(2,50);
-Beta(:,1)=[10;5];%the initial value
-betai=Beta(:,i);
-for j=2:N
-    Beta(:,j)=betai+w_beta(:,j-1);
-    betai=Beta(:,j);
-end
-%=========================================================
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 %==========================================================================
 %get the true value of the 
@@ -75,10 +111,9 @@ for i=1:N
 % x(:,i+1)=A*x(:,i)+B*u;
 end
 
-%  m1*cp1*(T1(100)-Tin_1);
-%  m2*cp2*(T2(100)-Tin_2);
-%   k*s*(T2(100)-T1(100));
 
+w_x=normrnd(0,305*0.002,N,1)%get the measurement error of the output
+%supposed that the
 
 To_in_1=290;
 To_in_2=350;
