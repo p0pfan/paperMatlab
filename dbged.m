@@ -17,7 +17,7 @@ N=50;
 A=[1-(m1*cp1+k*s)*dt/(M1*cp1)  k*s*dt/(M1*cp1)
       k*s*dt/(M2*cp2)     1-(m2*cp2+k*s)*dt/(M2*cp2)]
   
- B=[m1*cp1*dt/(M1*cp1)   0
+B=[m1*cp1*dt/(M1*cp1)   0
       0    m2*cp2*dt/(M2*cp2)];
   
 x(:,1)=[305
@@ -110,6 +110,10 @@ for i=2:N
 end
 
 
+%|-------------------------------------------------|
+%|Y_measure also should be -betas(the static gross)|
+%|Y_mea_mins_staG                                  |
+%|-------------------------------------------------|
 
 %===========================================================================
 %the process of Kalman Filter.
@@ -120,8 +124,50 @@ Kerr=100;                     %=actually I dont know how to choose the Kerr
 %============================
 RY_a=(Kerr-1)*M_a*RY+RY;
 
-%
+%P0 and Q0 should be gievn!
 
+
+%the modified P and Q
+%|-------------------------|
+%|should use a cycle!!!!!!!|
+%|-------------------------|
+%|-------------------------|
+%|modify                   |
+%|-------------------------|
+
+
+I_p=eye(8);
+P_t=[]?
+Q_a=[]?
+X_star(0)=?_
+Y_mea_mins_staG
+P_t_min_1
+%==========================================================================
+%the main part of kalman filter!
+S_t=H_star*[A_star*P_t*A_star'+Q_t]*H_star'+RY_a;
+K_a=[A_star*P_t*A_star'+Q_t]*H_star'*inv(S_t);
+X_star(t)=A_star*X_star(t-1)+K_a*(Y_mea_mins_staG-H_star*A_star*X_star(t-1));
+P_t=[I_p-K_a*H_star]*[A_star*P_t_min_1*A_star'+Q_a];
+%==========================================================================
+
+
+
+
+
+
+
+
+
+
+
+%============================================
+%this is used to cal the residual error
+P_m_t=[I,O;O,1/Kerr*I]*P_t*[I,O;O,1/Kerr*I];
+if(isempty(pos))
+    Q_m_t=[I,O;O,O]*Q_t*[I,O;O,O];
+end
+Q_m_t=[I,O;I,O]*Q_t*[I,O;I,O];
+%============================================
 
 %==========================================================================
 
