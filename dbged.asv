@@ -15,7 +15,7 @@ N=50;
 
 %====================================================================
 A=[1-(m1*cp1+k*s)*dt/(M1*cp1)  k*s*dt/(M1*cp1)
-      k*s*dt/(M2*cp2)     1-(m2*cp2+k*s)*dt/(M2*cp2)]
+      k*s*dt/(M2*cp2)     1-(m2*cp2+k*s)*dt/(M2*cp2)];
   
 B=[m1*cp1*dt/(M1*cp1)   0
       0    m2*cp2*dt/(M2*cp2)];
@@ -53,14 +53,18 @@ A_star=[1      0                         0                     0                
         0      0                         0                     0                            0  1  0  0;
         0      0                         0                     0                            0  0  1  0;
         0      0                         0                     0                            0  0  0  1
-        ]
+        ];
 
     
     
 %=================================================================    
-Active_GE_pos=zeros(1,4);                                   %=====
+Active_GE_pos=zeros(1,4);                                   
 %chose which instrrument has the active gross error         
-pos=[];
+
+%----------|
+pos=[];   %|
+%----------|
+
 if (~isempty(pos))
     for j=1:length(pos)
        Active_GE_pos(j)=1; 
@@ -68,14 +72,14 @@ if (~isempty(pos))
 end
 %=================================================================
 
-H_star=[eye(4,4),diag(Active_GE_pos)];%this means no gross error.
+H_star=[eye(4),diag(Active_GE_pos)];%this means no gross error.
 
 
-Q_state=0.01*eyes(4);%where [290,350,305,330] is the true value
+Q_state=0.1*eye(4);%where [290,350,305,330] is the true value
 
 w_state=sqrt(Q_state)*randn(4,N);
 
-RY=0.25*eyes(4);
+RY=0.5*eye(4);
 V=sqrt(RY)*randn(4,N);
 %===========get the random walk data=======================
 %w_betat~N(0,Q_beta)
@@ -88,7 +92,7 @@ w_beta=sqrt(Q_beta)*randn(4,N);
 %-----------------
 W=[w_state;w_beta];
 %-----------------
-X_true=zeros(8,N);
+X_state=zeros(8,N);
 Y_measure=zeros(4,N);
 %the initial value
 Tin_1=290;
@@ -100,13 +104,13 @@ beta_in2=5;
 beta_ot1=5;
 beta_ot2=5;
 
-X_true(:,1)=[Tin_1; Tin_2; To_1; To_2; beta_in; beta_in; beta_ot; beta_ot];
-Y_measure(:,1)=[Tin_1; Tin_2;To_1; To_2;];
+X_state(:,1)=[Tin_1; Tin_2; To_1; To_2; beta_in1; beta_in2; beta_ot1; beta_ot2];
+Y_measure(:,1)=[Tin_1; Tin_2;To_1; To_2];
 
 %get the measure of every sample time.
 for i=2:N
-    X_true(:,i)=A_star*X_true(:,i-1)+W(i-1);
-    Y_measure(:,i)=H_star*X_true(:,i)+V(i);
+    X_state(:,i)=A_star*X_state(:,i-1)+W(i-1);
+    Y_measure(:,i)=H_star*X_state(:,i)+V(i);
 end
 
 
@@ -114,6 +118,7 @@ end
 %|Y_measure also should be -betas(the static gross)|
 %|Y_mea_mins_staG                                  |
 %|-------------------------------------------------|
+
 
 %===========================================================================
 %the process of Kalman Filter.
@@ -124,43 +129,65 @@ Kerr=100;                     %=actually I dont know how to choose the Kerr
 %============================
 RY_a=(Kerr-1)*M_a*RY+RY;
 
-%P0 and Q0 should be gievn!
+X_star=zeros(8,N);
+K_a=zeros(8,4*(N+1));
 
-
-%the modified P and Q
-%|-------------------------|
-%|should use a cycle!!!!!!!|
-%|-------------------------|
 I_p=eye(8);
-P_t=[]?
-Q_t=[]?
-X_star(0)=?_
-S_t=H_star*[A_star*P_t*A_star'+Q_t]*H_star'+RY_a;
-K_a=[A_star*P_t*A_star'+Q_t]*H_star'*inv(S_t);
-X_star(t)=A_star*X_star(t-1)+K_a*(Y_mea_mins_staG-H_star*A_star*X_star(t-1));
-P_t=[I_p-K_a*H_star]*[A_star*P_t_min-]
+Q_a=diag([diag(Q_state)',diag(Q_beta)']);
 
-
-
-
-
-
-
-
-
-
-
-
-%============================================
-%this is used to cal the residual error
-P_m_t=[I,O;O,1/Kerr*I]*P_t*[I,O;O,1/Kerr*I];
-if(isempty(pos))
-    Q_m_t=[I,O;O,O]*Q_t*[I,O;O,O];
-end
-Q_m_t=[I,O;I,O]*Q_t*[I,O;I,O];
-%============================================
-
+X_star(:,1)=X_state(:,1);
+P_t_min_1=eye(8);
 %==========================================================================
+%the main part of kalman filter!
+for t=2:N
+    %start from the 2nd
+    
+    
+    S_t=H_star*(A_star*P_t_min_1*A_star'+Q_a)*H_star'+RY_a;
+   
+    K_a(:,4*t-3:4*t  )=(A_star*P_t_min_1*A_star'+Q_a)*H_star'*inv(S_t);
+    
+    X_star(:,t)=A_star*X_star(:,t-1)+K_a(:,4*t-3:4*t )*(Y_measure(:,t-1)-H_star*A_star*X_star(:,t-1));
+    P_t=(I_p-K_a(:,4*t-3:4*t  )*H_star)*(A_star*P_t_min_1*A_star'+Q_a);
+    
+    p_t_min_1=P_t;
+    
+    
+end
+    %=================================================
+    K_a(:,4*N+1:4*(N+1))=(A_star*P_t_min_1*A_star'+Q_a)*H_star'*inv(S_t);
+%==========================================================================
+%show the figure after Kalman Filter.
+plot(X_star(1,:),'*r')
+hold on 
+plot(Y_measure(1,:),'+')
+hold on
+plot(X_state(1,:),'k:')
+hold off
+axis([1,51,280,300])
+
+%===========================================================================
+%after get the //STANDARD RESIDUAL ERROR//  
+
+
+%---------------------|
+beta_s=0 ;           %| it also should be a matrix(4,1)
+%---------------------|
+
+delta_Rt=zeros(4,N);
+Sigma_rt=zeros(4,4*N);
+Z=zeros(4,N)
+for t=1:N
+    delta_Rt(:,t)=Y_measure(:,t)-beta_s-H_star*X_star(:,t);
+    
+%============================================================================ 
+    %get the covriance matrix of delta_Rt
+    K_R=eye(4)-H_star*K_a(:,4*t+1:4*(t+1));
+    K_Q=H_star*(eye(8)-K_a(:,4*t+1:4*(t+1))*H_star);
+    Sigma_rt(:,4*t-3:4*t)= K_R*RY_a*K_R'+K_Q*(A_star*P_t_min_1*A_star'+Q_a)*K_Q';
+    z(:,t)=
+end
+
 
 
 
