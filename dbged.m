@@ -11,7 +11,7 @@ k=0.6;
 s=11.511;
 
 dt=1;
-N=50;
+N=100;
 
 %====================================================================
 A=[1-(m1*cp1+k*s)*dt/(M1*cp1)  k*s*dt/(M1*cp1)
@@ -106,9 +106,10 @@ beta_ot2=5;
 
 X_state(:,1)=[Tin_1; Tin_2; To_1; To_2; beta_in1; beta_in2; beta_ot1; beta_ot2];
 Y_measure(:,1)=[Tin_1; Tin_2;To_1; To_2];
-
+X_true=zeros(4,N)
 %get the measure of every sample time.
 for i=2:N
+    X_true(:,i)=A_star*X_state(:,i-1)
     X_state(:,i)=A_star*X_state(:,i-1)+W(i-1);
     Y_measure(:,i)=H_star*X_state(:,i)+V(i);
 end
@@ -148,7 +149,7 @@ for t=2:N
     K_a(:,4*t-3:4*t  )=(A_star*P_t_min_1*A_star'+Q_a)*H_star'*inv(S_t);
     
     X_star(:,t)=A_star*X_star(:,t-1)+K_a(:,4*t-3:4*t )*(Y_measure(:,t-1)-H_star*A_star*X_star(:,t-1));
-    P_t=(I_p-K_a(:,4*t-3:4*t  )*H_star)*(A_star*P_t_min_1*A_star'+Q_a)
+    P_t=(I_p-K_a(:,4*t-3:4*t  )*H_star)*(A_star*P_t_min_1*A_star'+Q_a);
     
     P_t_min_1=P_t;
     P_t_min_1
@@ -163,8 +164,10 @@ hold on
 plot(Y_measure(1,:),'+')
 hold on
 plot(X_state(1,:),'k:')
+hold on
+plot(X_true(1,:),'g:')
 hold off
-axis([1,51,280,300])
+axis([1,101,280,300])
 
 %===========================================================================
 %after get the //STANDARD RESIDUAL ERROR//  

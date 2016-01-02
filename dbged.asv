@@ -150,8 +150,8 @@ for t=2:N
     X_star(:,t)=A_star*X_star(:,t-1)+K_a(:,4*t-3:4*t )*(Y_measure(:,t-1)-H_star*A_star*X_star(:,t-1));
     P_t=(I_p-K_a(:,4*t-3:4*t  )*H_star)*(A_star*P_t_min_1*A_star'+Q_a);
     
-    p_t_min_1=P_t;
-    
+    P_t_min_1=P_t;
+    P_t_min_1
     
 end
     %=================================================
@@ -176,16 +176,17 @@ beta_s=0 ;           %| it also should be a matrix(4,1)
 
 delta_Rt=zeros(4,N);
 Sigma_rt=zeros(4,4*N);
-Z=zeros(4,N)
+Z=zeros(4,N);
 for t=1:N
     delta_Rt(:,t)=Y_measure(:,t)-beta_s-H_star*X_star(:,t);
     
 %============================================================================ 
+K_a(:,4*t+1:4*(t+1));
     %get the covriance matrix of delta_Rt
     K_R=eye(4)-H_star*K_a(:,4*t+1:4*(t+1));
     K_Q=H_star*(eye(8)-K_a(:,4*t+1:4*(t+1))*H_star);
     Sigma_rt(:,4*t-3:4*t)= K_R*RY_a*K_R'+K_Q*(A_star*P_t_min_1*A_star'+Q_a)*K_Q';
-    z(:,t)=
+    Z(:,t)=inv(Sigma_rt(:,4*t-3:4*t)^0.5)*delta_Rt(:,t);
 end
 
 
