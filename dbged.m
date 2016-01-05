@@ -45,14 +45,14 @@ O = zeros(2,2);
 % beta_02k  0      0                         0                     0                            0  0  0  1
 %]
 
-A_star=[1      0                         0                     0                            0  0  0  0;
-        0      1                         0                     0                            0  0  0  0;
-        m1*cp1 0                   1-(m1*cp1+k*s)*dt/(M1*cp1)  k*s*dt/(M1*cp1)              0  0  0  0;
-        0      m2*cp2*dt/(M2*cp2)  k*s*dt/(M2*cp2)             1-(m2*cp2+k*s)*dt/(M2*cp2)   0  0  0  0;
-        0      0                         0                     0                            1  0  0  0;
-        0      0                         0                     0                            0  1  0  0;
-        0      0                         0                     0                            0  0  1  0;
-        0      0                         0                     0                            0  0  0  1
+A_star=[1                    0                         0                     0                            0  0  0  0;
+        0                    1                         0                     0                            0  0  0  0;
+        m1*cp1*dt/(M1*cp1)   0                   1-(m1*cp1+k*s)*dt/(M1*cp1)  k*s*dt/(M1*cp1)              0  0  0  0;
+        0                    m2*cp2*dt/(M2*cp2)  k*s*dt/(M2*cp2)             1-(m2*cp2+k*s)*dt/(M2*cp2)   0  0  0  0;
+        0                    0                         0                     0                            1  0  0  0;
+        0                    0                         0                     0                            0  1  0  0;
+        0                    0                         0                     0                            0  0  1  0;
+        0                    0                         0                     0                            0  0  0  1
         ];
 
     
@@ -75,11 +75,11 @@ end
 H_star=[eye(4),diag(Active_GE_pos)];%this means no gross error.
 
 
-Q_state=0.1*eye(4);%where [290,350,305,330] is the true value
+Q_state=0.002*eye(4);%where [290,350,305,330] is the true value
 
 w_state=sqrt(Q_state)*randn(4,N);
 
-RY=0.5*eye(4);
+RY=diag([0.7,0.58,0.61,0.66])%5*eye(4);
 V=sqrt(RY)*randn(4,N);
 %===========get the random walk data=======================
 %w_betat~N(0,Q_beta)
@@ -106,7 +106,7 @@ beta_ot2=5;
 
 X_state(:,1)=[Tin_1; Tin_2; To_1; To_2; beta_in1; beta_in2; beta_ot1; beta_ot2];
 Y_measure(:,1)=[Tin_1; Tin_2;To_1; To_2];
-X_true=zeros(4,N)
+X_true=zeros(8,N)
 %get the measure of every sample time.
 for i=2:N
     X_true(:,i)=A_star*X_state(:,i-1)
@@ -142,8 +142,7 @@ P_t_min_1=eye(8);
 %the main part of kalman filter!
 for t=2:N
     %start from the 2nd
-    
-    
+
     S_t=H_star*(A_star*P_t_min_1*A_star'+Q_a)*H_star'+RY_a;
    
     K_a(:,4*t-3:4*t  )=(A_star*P_t_min_1*A_star'+Q_a)*H_star'*inv(S_t);
@@ -151,23 +150,21 @@ for t=2:N
     X_star(:,t)=A_star*X_star(:,t-1)+K_a(:,4*t-3:4*t )*(Y_measure(:,t-1)-H_star*A_star*X_star(:,t-1));
     P_t=(I_p-K_a(:,4*t-3:4*t  )*H_star)*(A_star*P_t_min_1*A_star'+Q_a);
     
-    P_t_min_1=P_t;
-    P_t_min_1
-    
+    P_t_min_1=P_t; 
 end
     %=================================================
     K_a(:,4*N+1:4*(N+1))=(A_star*P_t_min_1*A_star'+Q_a)*H_star'*inv(S_t);
 %==========================================================================
 %show the figure after Kalman Filter.
-plot(X_star(1,:),'*r')
+plot(1:N,X_star(3,:),'*r')
 hold on 
-plot(Y_measure(1,:),'+')
+plot(1:N,Y_measure(3,:),'+')
 hold on
-plot(X_state(1,:),'k:')
-hold on
-plot(X_true(1,:),'g:')
+% plot(1:N,X_state(3,:),'k:')
+% hold on
+plot(1:N,X_true(3,:),'g:')
 hold off
-axis([1,101,280,300])
+axis([1,101,280,340])
 
 %===========================================================================
 %after get the //STANDARD RESIDUAL ERROR//  
@@ -184,13 +181,18 @@ for t=1:N
     delta_Rt(:,t)=Y_measure(:,t)-beta_s-H_star*X_star(:,t);
     
 %============================================================================ 
-K_a(:,4*t+1:4*(t+1));
+    K_a(:,4*t+1:4*(t+1));
     %get the covriance matrix of delta_Rt
     K_R=eye(4)-H_star*K_a(:,4*t+1:4*(t+1));
     K_Q=H_star*(eye(8)-K_a(:,4*t+1:4*(t+1))*H_star);
     Sigma_rt(:,4*t-3:4*t)= K_R*RY_a*K_R'+K_Q*(A_star*P_t_min_1*A_star'+Q_a)*K_Q';
     Z(:,t)=inv(Sigma_rt(:,4*t-3:4*t)^0.5)*delta_Rt(:,t);
 end
+
+%==========================================================================
+%==========================================================================
+%DATA COLLECTION BY FILTERING RESIDUAL ERROR
+
 
 
 
