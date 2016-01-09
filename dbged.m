@@ -106,10 +106,10 @@ beta_ot2=5;
 
 X_state(:,1)=[Tin_1; Tin_2; To_1; To_2; beta_in1; beta_in2; beta_ot1; beta_ot2];
 Y_measure(:,1)=[Tin_1; Tin_2;To_1; To_2];
-X_true=zeros(8,N)
+X_true=zeros(8,N);
 %get the measure of every sample time.
 for i=2:N
-    X_true(:,i)=A_star*X_state(:,i-1)
+    X_true(:,i)=A_star*X_state(:,i-1);
     X_state(:,i)=A_star*X_state(:,i-1)+W(i-1);
     Y_measure(:,i)=H_star*X_state(:,i)+V(i);
 end
@@ -189,15 +189,44 @@ for t=1:N
     Z(:,t)=inv(Sigma_rt(:,4*t-3:4*t)^0.5)*delta_Rt(:,t);
 end
 
+
+
 %==========================================================================
 %==========================================================================
 %DATA COLLECTION BY FILTERING RESIDUAL ERROR
 
+D_ii=zeros(4,N);
+for i=1:N
+    D_ii(:,i)=diag(Sigma_rt(:,4*i-3:4*i));
 
+end
 
+%=================================================
+%%%%%%%%%%%%EWMAF
+Z_tip_beta=zeros(4,N);
 
+P_z_t=zeros(4,4*N+4);
+K_EWMAF=zeros(4,4*N+4);
+I=eye(4);   
 
-
+%=============================
+%the initial
+Z_tip_beta(:,1)=Z(:,1);
+P_z_t(:,5:8)=eye(4);
+P_z=eye(4);
+Q_z=0.05*eye(4);
+for i=2:N
+    
+    K_temp=(P_z+Q_z)/(P_z+Q_z+I);
+    
+    K_EWMAF(:,4*i-3:4*i )=K_temp;
+    
+    Z_tip_beta(:,i)=Z_tip_beta(:,i-1)+ K_temp*(Z(:,i)-Z_tip_beta(:,i-1));
+    
+    P_z_t(:,4*i+1:4*i+4)=(I-K_temp)*(P_z+Q_z);
+    
+    P_z=P_z_t(:,4*i+1:4*i+4);
+end
 
 
 
