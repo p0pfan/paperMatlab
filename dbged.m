@@ -92,8 +92,8 @@ w_beta=sqrt(Q_beta)*randn(4,N);
 %-----------------
 W=[w_state;w_beta];
 %-----------------
-X_state=zeros(8,N);
-Y_measure=zeros(4,N);
+X_state=zeros(8,N+1);
+Y_measure=zeros(4,N+1);
 %the initial value
 Tin_1=290;
 Tin_2=350;
@@ -106,15 +106,16 @@ beta_ot2=5;
 
 X_state(:,1)=[Tin_1; Tin_2; To_1; To_2; beta_in1; beta_in2; beta_ot1; beta_ot2];
 Y_measure(:,1)=[Tin_1; Tin_2;To_1; To_2];
-X_true=zeros(8,N);
+X_true=zeros(8,N+1);
 %get the measure of every sample time.
-for i=2:N
+for i=2:N+1
     X_true(:,i)=A_star*X_state(:,i-1);
     X_state(:,i)=A_star*X_state(:,i-1)+W(i-1);
     Y_measure(:,i)=H_star*X_state(:,i)+V(i);
 end
-
-
+X_true(:,1)=[];
+X_state(:,1)=[];
+Y_measure(:,1)=[];
 %|-------------------------------------------------|
 %|Y_measure also should be -betas(the static gross)|
 %|Y_mea_mins_staG                                  |
@@ -212,20 +213,25 @@ I=eye(4);
 %=============================
 %the initial
 Z_tip_beta(:,1)=Z(:,1);
-P_z_t(:,5:8)=eye(4);
+P_z_t(:,5:8)=0.5*eye(4);
 P_z=eye(4);
 Q_z=0.05*eye(4);
 for i=2:N
     
-    K_temp=(P_z+Q_z)/(P_z+Q_z+I);
+    K_EWMAF(:,4*i-3:4*i )=(P_z_t(:,4*i-3:4*i )+Q_z)/(P_z_t(:,4*i-3:4*i )+Q_z+I);
     
-    K_EWMAF(:,4*i-3:4*i )=K_temp;
+    Z_tip_beta(:,i)=Z_tip_beta(:,i-1)+ K_EWMAF(:,4*i-3:4*i )*(Z(:,i)-Z_tip_beta(:,i-1));
     
-    Z_tip_beta(:,i)=Z_tip_beta(:,i-1)+ K_temp*(Z(:,i)-Z_tip_beta(:,i-1));
+    P_z_t(:,4*i+1:4*i+4)=(I-K_EWMAF(:,4*i-3:4*i ))*(P_z_t(:,4*i-3:4*i )+Q_z);
+   
+end
+
+%=====================================================
+%get univariable statistics
+sqr_sigma_0 =zeros(4,4*N);
+
+for i=1:N
     
-    P_z_t(:,4*i+1:4*i+4)=(I-K_temp)*(P_z+Q_z);
-    
-    P_z=P_z_t(:,4*i+1:4*i+4);
 end
 
 
