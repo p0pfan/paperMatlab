@@ -138,7 +138,7 @@ I_p=eye(8);
 Q_a=diag([diag(Q_state)',diag(Q_beta)']);
 
 X_star(:,1)=X_state(:,1);
-P_t_min_1=eye(8);
+P_t_min_1=cov(X_state');
 %==========================================================================
 %the main part of kalman filter!
 for t=2:N
@@ -214,7 +214,7 @@ I=eye(4);
 %the initial
 Z_tip_beta(:,1)=Z(:,1);
 P_z_t(:,5:8)=0.5*eye(4);
-P_z=eye(4);
+P_z=cov(Z');
 Q_z=0.05*eye(4);
 for i=2:N
     
@@ -228,13 +228,27 @@ end
 
 %=====================================================
 %get univariable statistics
-sqr_sigma_0 =zeros(4,4*N);
+sqr_sigma_0 =zeros(4,N);%every row is the diag value
 
 for i=1:N
-    
+    sqr_sigma_0(:,i)=diag(P_z_t(:,4*i+1:4*i+4));%the row represent one variable N:the time
 end
 
+%get the sigma_one
+%1.cal the MSE of every instrument
+tempsum=zeros(4,1);
+prediected=H_star*X_star;
+for i=1:4
+    for j=1:N
+        tempsum(i,1)=prediected(i,j)-Y_measure(i,j);
+    end
+end
 
+%2.cal sigma_beta_zero_s vector
+
+for t=1:N
+    
+end
 
 
 
