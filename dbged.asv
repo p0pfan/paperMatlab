@@ -237,20 +237,33 @@ end
 %get the sigma_one
 %1.cal the MSE of every instrument
 tempsum=zeros(4,1);
+MSE=zeros(4,1);
 prediected=H_star*X_star;
 for i=1:4
     for j=1:N
-        tempsum(i,1)=prediected(i,j)-Y_measure(i,j);
+        tempsum(i,1)=((prediected(i,j)-Y_measure(i,j))^0.5);
     end
+    MSE(i,1)=tempsum(i,1)/N;
 end
 
 %2.cal sigma_beta_zero_s vector
 
 for t=1:N
-    
+    sigma_beta_zero_s_vector=(Sigma_rt(:,4*t-3:4*t)^0.5)\(diag(MSE))^0.5;
+end
+sigma_beta_zero_s=diag(sigma_beta_zero_s_vector);
+
+%3.cal sigma_one
+sigma_one=zeros(4,N);
+for i=1:N
+    for j=1:4
+    sigma_one(i,j)=sigma_beta_zero_s(j,1)^2+ sqr_sigma_0(i,j);
+    end
 end
 
-
+for j=1:N
+    
+end
 
 
 
