@@ -187,7 +187,8 @@ for t=1:N
     K_R=eye(4)-H_star*K_a(:,4*t+1:4*(t+1));
     K_Q=H_star*(eye(8)-K_a(:,4*t+1:4*(t+1))*H_star);
     Sigma_rt(:,4*t-3:4*t)= K_R*RY_a*K_R'+K_Q*(A_star*P_t_min_1*A_star'+Q_a)*K_Q';
-    Z(:,t)=inv(Sigma_rt(:,4*t-3:4*t)^0.5)*delta_Rt(:,t);
+    [U S V]=svd(Sigma_rt(:,4*t-3:4*t));
+    Z(:,t)=(U*S^(0.5)*V)\delta_Rt(:,t);
 end
 
 
@@ -240,6 +241,7 @@ tempsum=zeros(4,1);
 MSE=zeros(4,1);
 prediected=H_star*X_star;
 for i=1:4
+
     for j=1:N
         tempsum(i,1)=((prediected(i,j)-Y_measure(i,j))^0.5);
     end
@@ -247,29 +249,55 @@ for i=1:4
 end
 
 %2.cal sigma_beta_zero_s vector
-
+sigma_beta_zero_s_vector=zeros(4,N)
 for t=1:N
-    sigma_beta_zero_s_vector=(Sigma_rt(:,4*t-3:4*t)^0.5)\(diag(MSE))^0.5;
+    [U S V]=svd(Sigma_rt(:,4*t-3:4*t));
+    sigma_beta_zero_s_vector(:,t)=(U*S^(0.5)*V)\(diag(MSE))^0.5*eye(4,1);
+    %readme:
+    %the column of sigma_beta_zero_s_vector is the value of every sample
+    %time.
+    %in one cloumn, every row means one instrument
 end
-sigma_beta_zero_s=diag(sigma_beta_zero_s_vector);
+
 
 %3.cal sigma_one
 sigma_one=zeros(4,N);
 for i=1:N
     for j=1:4
-    sigma_one(i,j)=sigma_beta_zero_s(j,1)^2+ sqr_sigma_0(i,j);
+        a=(sigma_beta_zero_s_vector(j,i))^2;
+        b=(sqr_sigma_0(j,i))^2;
+        sigma_one(j,i)=(a+b)^(1/2);
     end
 end
 
-for j=1:N
-    
-end
+%===========================================================|
+%this is used to see whether the simga_rt is positive or not|
+count=0;                                                   %|
+for j=1:N                                                  %|
+    [t ccc]=zddc(Sigma_rt(:,4*j-3:4*j));                   %|
+    count=count+ccc;                                       %|
+end                                                        %|
+%===========================================================|
 
 
+%=====================================================================================
+%get the cut-off Z-value
+
+%1. get the cutoff gross error: beta_cutoff
+
+%=================================
+%so define the beta_cutoff value!|
+infinte=100;                    %|
+beta_cut_off=5*ones(4,1);       %| 
+%=================================
+Z_cutoff=Sigma_rt(:,infinte);
 
 
+%========================================================================================
 
+%the part of HMM
 
+%1.cal
 
 
 
