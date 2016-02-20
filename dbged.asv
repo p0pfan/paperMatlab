@@ -261,12 +261,12 @@ end
 
 
 %3.cal sigma_one
-sigma_one=zeros(4,N);
+square_sigma_one=zeros(4,N);
 for i=1:N
     for j=1:4
         a=(sigma_beta_zero_s_vector(j,i))^2;
-        b=(sqr_sigma_0(j,i))^2;
-        sigma_one(j,i)=(a+b)^(1/2);
+        b=sqr_sigma_0(j,i);
+        square_sigma_one(j,i)=a+b;
     end
 end
 
@@ -297,9 +297,39 @@ Z_cutoff=Sigma_rt(:,infinte);
 
 %the part of HMM
 
-%1.cal
+%1.SUPPOSED THE STATE TRANSITION 
+A_CP=[0.75 0.25;0.25 0.75];
 
+%2.cal the value of observe matrix
 
+B 	= [0.5,0;0,0.25];
+pi 	= [0.95;0.05];
 
+state_probability=zeros(2,N);
+likelihood_value=zeros(8,N);
+P_ht=zeros(2,N);
+%cal the likelihood_value
+for i=1:4
+for j=1:N
+    likelihood_value(2*i-1,j)=1/sqrt(2*3.14*sqr_sigma_0(1,j))*exp(-0.5*Z_tip_beta(i,j)/sqr_sigma_0(1,j));
+    likelihood_value(2*i,j)=1/sqrt(2*3.14*square_sigma_one(1,j))*exp(-0.5*Z_tip_beta(i,j)/square_sigma_one(1,j));
+end
+end
+for i=1:N
+    C_CP=[likelihood_value(1,i),0;0,likelihood_value(2,i)];
+    P_ht(:,i)=A_CP*pi;
+    P_zt_ht=C_CP*P_ht(:,i);
+    state_probability(:,i)=P_zt_ht/(P_zt_ht(1,1)+P_zt_ht(2,1));
+    pi=P_ht(:,i);
+end
+
+bool_value=zeros(1,N);
+for t=1:N
+    if(state_probability(1,t)>state_probability(2,t))
+        bool_value(1,t)=0;
+    else
+        bool_value(1,t)=1;
+    end
+end
 
 
