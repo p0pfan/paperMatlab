@@ -25,8 +25,7 @@ x(:,1)=[305
 u=[290
    350];
 
-H=[1 0
-   0 1];
+H=eye(4);
 
 I=[1 0
    0 1];  
@@ -57,20 +56,7 @@ A_star=[1                    0                         0                     0  
 
     
     
-%=================================================================    
-Active_GE_pos=zeros(1,4);                                   
-%chose which instrrument has the active gross error         
-
-%----------|
-pos=[];   %|
-%----------|
-
-if (~isempty(pos))
-    for j=1:length(pos)
-       Active_GE_pos(j)=1; 
-    end  
-end
-%=================================================================
+Active_GE_pos=zeros(1,4);  
 
 H_star=[eye(4),diag(Active_GE_pos)];%this means no gross error.
 
@@ -84,7 +70,7 @@ w_state=sqrt(Q_state)*randn(4,N);%  |
 
 RY=diag([0.07,0.058,0.061,0.066]);%5*eye(4);the covariance of the measurement
 
-V=sqrt(RY)*randn(4,N);
+V_t=sqrt(RY)*randn(4,N);
 
 %===========get the random walk data=======================
 %w_betat~N(0,Q_beta)
@@ -118,18 +104,27 @@ Y_measure(:,1)=[Tin_1; Tin_2;To_1; To_2];
 %----------------------------------------
 X_true=zeros(8,N+1);
 %get the measure of every sample time.
-for i=2:N+1
-    X_true(:,i)=A_star*X_state(:,i-1);
-    X_state(:,i)=A_star*X_state(:,i-1)+W(i-1);
-    Y_measure(:,i)=H_star*X_state(:,i)+V(i);
+for i=1:N-1
+    X_true(:,i+1)=A_star*X_state(:,i);
+    X_state(:,i+1)=A_star*X_state(:,i)+W(i);
+    Y_measure(:,i)=H_star*X_state(:,i)+V_t(i);
 end
-X_true(:,1)=[];
-X_state(:,1)=[];
-Y_measure(:,1)=[];
+Y_measure(:,N)=H_star*X_state(:,N)+V_t(N);
 %|-------------------------------------------------|
 %|Y_measure also should be -betas(the static gross)|
 %|Y_mea_mins_staG                                  |
 %|-------------------------------------------------|
+temp=Y_measure
+for i=20:N
+    Y_measure(1,i)=temp(1,i)+10;
+end
+
+
+
+
+
+
+
 
 
 %==========================================================================
@@ -156,7 +151,7 @@ P_t_min_1=zeros(8,8);
 delta_Rt=zeros(4,N);
 
 Sigma_rt=zeros(4,4);
-all_sigma_rt_matrix=zeros(4,4*N);
+
 Z=zeros(4,N);
 
 %---------------------|
@@ -179,21 +174,39 @@ pi 	= [0.999 0.001;0.999 0.001;0.999 0.001;0.999 0.001]';%4×2
 %--------------------------|
 bool_value=zeros(4,N);
 
-%==========================================================================
 
 
 %========================
 %%%%%%%%%%%%%%%%%%%%%%%%%
 %--------------------------|
 %     sima_beta_0
-    %MSE(sima_beta_0) should be manipulated |
-    MSE=[5 5 5 5]';          %|
-    %--------------------------|
+%MSE(sima_beta_0) should be manipulated |
+MSE=[0.55 0.55 0.55 0.55]';           %|
+%--------------------------|
+
+
+Z_c=0.15;
+
+%--------------------------|
+%Q_z should be manipulated |
+Q_z=0.05*eye(4);          %|
+%--------------------------|
+
+
 %%%%%%%%%%%%%%%%%%%%%%%%%
 %========================
+
+
+%cal sigma_infinate
+sigma_infinate=sigma_infinate(H_star,A_star,RY_a,Q_a,P_t_min_1,N);
+
+
+%==========================================================================
 %the main part of kalman filter!
 for t=1:N
     %start from the 2nd
+    
+    
 
     S_t=H_star*(A_star*P_t_min_1*A_star'+Q_a)*H_star'+RY_a;
    
@@ -202,44 +215,63 @@ for t=1:N
     X_star(:,t)=A_star*X_star_0+K_a*(Y_measure(:,t)-H_star*A_star*X_star_0);
     %----------------------------------------------------------------
     %cal the residual errror
-    delta_Rt(:,t)=Y_measure(:,t)-beta_s-H_star*X_star(:,t);
+    delta_Rt(:,t)=Y_measure(:,t)-H_star*X_star(:,t);
     
     %get the covriance matrix of delta_Rt
     Sigma_rt=resiual_error_cov(H_star,A_star,RY_a,K_a,Q_a,P_t_min_1);
-    all_sigma_rt_matrix(:,4*t-3:4*t)=Sigma_rt;
+    
     
     %standardizing the residual error
     [U S V]=svd(Sigma_rt);
     Z(:,t)=(U*S^(0.5)*V)\delta_Rt(:,t);
     
     %filtering the residual error
-    %--------------------------|
-    %Q_z should be manipulated |
-    Q_z=0.05*eye(4);          %|
-    %--------------------------|
+   
     if (t==1)
         temp_Z_tip_beta=Z(:,t);
     end
     
     [Z_tip_beta(:,t),temp_P_z_t]=EWMAF(Q_z,P_z_t,Z(:,t),temp_Z_tip_beta);
     
+    [Q_z_t,Q_beta_t]=cal_Qz_Qbeta(Q_z,Z_tip_beta(:,t),temp_P_z_t,sigma_infinate);
     %get univariable statistics
     
     sqr_sigma_0(:,t)=diag(temp_P_z_t);
     
     %get sigma_one
-
+    
     sqr_sigma_1(:,t)=Sigma_one(MSE,Sigma_rt,sqr_sigma_0(:,t));
     
     %cal the  HMM
 
     [bool_value(:,t),P_ht]=cal_HMM(sqr_sigma_0(:,t),sqr_sigma_1(:,t),pi,Z_tip_beta(:,t));
     
+    pos=find(bool_value(:,t)==1);
+    
+    
+    if (~isempty(pos))
+        for j=1:length(pos)
+            Active_GE_pos(pos(j))=1; 
+        end  
+    else
+        Active_GE_pos=zeros(1,4);
+    end
+
     
     
     
     
     %----------------------------------------------------------------
+    %----------------------|
+    %tuning Q_z and Q_beta-|
+    Q_z=Q_z_t;
+    Q_beta=Q_beta_t;
+    Q_a=diag([diag(Q_state)',diag(Q_beta)']);
+    %----------------------|
+    
+    H_star=[H,diag(Active_GE_pos)];
+    
+    X_star_0=X_star(:,t);
     
     pi=P_ht; %update the probability
     
@@ -252,9 +284,10 @@ for t=1:N
     P_t=(I_p-K_a*H_star)*(A_star*P_t_min_1*A_star'+Q_a);
     
     P_t_min_1=P_t; 
-    X_star_0=X_star(:,t);
+    
 end
 %show the figure 
+figure(1)
 subplot(4,1,1)
 plot(1:N,bool_value(1,:),':r')
 axis([1,N+1,-0.2,1.5])
@@ -271,4 +304,20 @@ subplot(4,1,4)
 plot(1:N,bool_value(4,:))
 axis([1,N+1,-0.2,1.5])
 
+figure(2)
 
+subplot(4,1,1)
+plot(1:N,delta_Rt(1,:),'.r')
+axis([1,N+1,-5,5])
+
+subplot(4,1,2)
+plot(1:N,delta_Rt(2,:),'.')
+axis([1,N+1,-5,5])
+
+subplot(4,1,3)
+plot(1:N,delta_Rt(3,:),'.')
+axis([1,N+1,-5,5])
+
+subplot(4,1,4)
+plot(1:N,delta_Rt(4,:),'.')
+axis([1,N+1,-5,5])

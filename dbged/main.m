@@ -31,7 +31,7 @@ H=[1 0
 I=[1 0
    0 1];  
  
-O = zeros(2,2);
+
 
 %==========================================================================
 %get the state matrix
@@ -82,9 +82,10 @@ Q_state=0.002*eye(4);%where [290,350,305,330] is the true value |
 w_state=sqrt(Q_state)*randn(4,N);%  |
 %-----------------------------------|
 
-RY=diag([0.7,0.58,0.61,0.66]);%5*eye(4);
+RY=diag([0.07,0.058,0.061,0.066]);%5*eye(4);the covariance of the measurement
 
 V=sqrt(RY)*randn(4,N);
+
 %===========get the random walk data=======================
 %w_betat~N(0,Q_beta)
 %suppose that N=50 and the covariance is supposed 3sigma~10sigma gross
@@ -112,7 +113,9 @@ beta_ot1=5;
 beta_ot2=5;
 
 X_state(:,1)=[Tin_1; Tin_2; To_1; To_2; beta_in1; beta_in2; beta_ot1; beta_ot2];
+%----------------------------------------
 Y_measure(:,1)=[Tin_1; Tin_2;To_1; To_2];
+%----------------------------------------
 X_true=zeros(8,N+1);
 %get the measure of every sample time.
 for i=2:N+1
@@ -140,20 +143,20 @@ RY_a=(Kerr-1)*M_a*RY+RY;
 
 X_star=zeros(8,N);
 
-K_a=zeros(8,4*(N+1));
+
 
 I_p=eye(8);
 
 Q_a=diag([diag(Q_state)',diag(Q_beta)']);
 
-X_star(:,1)=X_state(:,1);
-P_t_min_1=cov(X_state');
-
+X_star_0=X_state(:,1);
+% P_t_min_1=cov(X_state');
+P_t_min_1=zeros(8,8);
 %==========================================================================
 delta_Rt=zeros(4,N);
 
 Sigma_rt=zeros(4,4);
-
+all_sigma_rt_matrix=zeros(4,4*N);
 Z=zeros(4,N);
 
 %---------------------|
@@ -161,7 +164,9 @@ beta_s=[0 0 0 0]' ;           %| it also should be a matrix(4,1)
 %---------------------|
 %---------------------------------------------
 %filtering residual error
-P_z_t=0.5*eye(4); %%%%%   the initial of EWMAF
+P_z_t=zeros(4,4);
+% P_z_t=0.5*eye(4); %%%%%   the initial of EWMAF
+
 Z_tip_beta=zeros(4,N);
 
 %obtaining univariate statics
@@ -170,27 +175,41 @@ sqr_sigma_1 =zeros(4,N);%every row is the diag value
 
 %cal HMM
 %--------------------------|
-pi 	= [0.95 0.05;0.95 0.05;0.95 0.05;0.95 0.05]';%4×2
+pi 	= [0.999 0.001;0.999 0.001;0.999 0.001;0.999 0.001]';%4×2
 %--------------------------|
 bool_value=zeros(4,N);
 
 %==========================================================================
+
+
+%========================
+%%%%%%%%%%%%%%%%%%%%%%%%%
+%--------------------------|
+%     sima_beta_0
+%MSE(sima_beta_0) should be manipulated |
+MSE=[5 5 5 5]';          %|
+%--------------------------|
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%
+%========================
 %the main part of kalman filter!
-for t=2:N
+for t=1:N
     %start from the 2nd
 
     S_t=H_star*(A_star*P_t_min_1*A_star'+Q_a)*H_star'+RY_a;
    
-    K_a(:,4*t-3:4*t  )=(A_star*P_t_min_1*A_star'+Q_a)*H_star'/S_t;
+    K_a=(A_star*P_t_min_1*A_star'+Q_a)*H_star'/S_t;
     
-    X_star(:,t)=A_star*X_star(:,t-1)+K_a(:,4*t-3:4*t )*(Y_measure(:,t-1)-H_star*A_star*X_star(:,t-1));
+    X_star(:,t)=A_star*X_star_0+K_a*(Y_measure(:,t)-H_star*A_star*X_star_0);
     %----------------------------------------------------------------
     %cal the residual errror
     delta_Rt(:,t)=Y_measure(:,t)-beta_s-H_star*X_star(:,t);
     
     %get the covriance matrix of delta_Rt
-    Sigma_rt=resiual_error_cov(H_star,A_star,RY_a,K_a(:,4*t-3:4*t  ),Q_a,P_t_min_1);
-    
+    Sigma_rt=resiual_error_cov(H_star,A_star,RY_a,K_a,Q_a,P_t_min_1);
+    all_sigma_rt_matrix(:,4*t-3:4*t)=Sigma_rt;
     
     %standardizing the residual error
     [U S V]=svd(Sigma_rt);
@@ -201,7 +220,7 @@ for t=2:N
     %Q_z should be manipulated |
     Q_z=0.05*eye(4);          %|
     %--------------------------|
-    if (t==2)
+    if (t==1)
         temp_Z_tip_beta=Z(:,t);
     end
     
@@ -209,13 +228,10 @@ for t=2:N
     
     %get univariable statistics
     
-    sqr_sigma_0(:,t)=diag(P_z_t);
+    sqr_sigma_0(:,t)=diag(temp_P_z_t);
     
     %get sigma_one
-    %--------------------------|
-    %MSE(sima_beta_0) should be manipulated |
-    MSE=[5 5 5 5]';          %|
-    %--------------------------|
+
     sqr_sigma_1(:,t)=Sigma_one(MSE,Sigma_rt,sqr_sigma_0(:,t));
     
     %cal the  HMM
@@ -236,8 +252,26 @@ for t=2:N
     
     P_z_t=temp_P_z_t;   %update the p_z_t in filtering the residual errors
     
-    P_t=(I_p-K_a(:,4*t-3:4*t  )*H_star)*(A_star*P_t_min_1*A_star'+Q_a);
+    P_t=(I_p-K_a*H_star)*(A_star*P_t_min_1*A_star'+Q_a);
     
     P_t_min_1=P_t; 
+    X_star_0=X_star(:,t);
 end
+%show the figure 
+subplot(4,1,1)
+plot(1:N,bool_value(1,:),':r')
+axis([1,N+1,-0.2,1.5])
+
+subplot(4,1,2)
+plot(1:N,bool_value(2,:),'-.')
+axis([1,N+1,-0.2,1.5])
+
+subplot(4,1,3)
+plot(1:N,bool_value(3,:),'--r')
+axis([1,N+1,-0.2,1.5])
+
+subplot(4,1,4)
+plot(1:N,bool_value(4,:))
+axis([1,N+1,-0.2,1.5])
+
 

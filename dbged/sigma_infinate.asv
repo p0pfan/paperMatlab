@@ -1,0 +1,13 @@
+function sigma_infinate=sigma_infinate(H_star,A_star,RY_a,Q_a,P_t_min_1,N)
+    Sigma_rt=z
+for i=1:N
+    S_t=H_star*(A_star*P_t_min_1*A_star'+Q_a)*H_star'+RY_a;
+    K_a=(A_star*P_t_min_1*A_star'+Q_a)*H_star'/S_t;
+    K_R=eye(4)-C_a*K_a;
+    K_Q=C_a*(eye(8)-K_a*C_a);
+    Sigma_rt= K_R*RY_a*K_R'+K_Q*(A_star*P_t_min_1*A_star'+Q_a)*K_Q';
+    P_t=(eye(8)-K_a*H_star)*(A_star*P_t_min_1*A_star'+Q_a);
+    P_t_min_1=P_t
+end
+    
+end
