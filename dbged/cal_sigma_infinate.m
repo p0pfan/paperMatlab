@@ -1,4 +1,4 @@
-function sigma_infinate=sigma_infinate(H_star,A_star,RY_a,Q_a,P_t_min_1,N)
+function sigma_infinate=cal_sigma_infinate(H_star,A_star,RY_a,Q_a,P_t_min_1,N)
     Sigma_rt=zeros(4,4*N);
 for i=1:N
     S_t=H_star*(A_star*P_t_min_1*A_star'+Q_a)*H_star'+RY_a;
