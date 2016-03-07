@@ -7,10 +7,10 @@ function [bool_value,P_ht]=cal_HMM(sqr_sigma_0,sqr_sigma_1,pi,Z_tip_beta)
     for i=1:N
         h0_likelihood_value=1/sqrt(2*3.14*sqr_sigma_0(i,1))*exp(-0.5*Z_tip_beta(i,1)/sqr_sigma_0(i,1));
         h1_likelihood_value=1/sqrt(2*3.14*sqr_sigma_1(i,1))*exp(-0.5*Z_tip_beta(i,1)/sqr_sigma_1(i,1));
-        C_CP=[h0_likelihood_value,0;0,h1_likelihood_value];
+        C_CP=[h0_likelihood_value,0;0,h1_likelihood_value]
         
         P_ht(:,i)=A_CP*pi(:,i);
-        P_zt_ht=C_CP*P_ht(:,i);
+        P_zt_ht=C_CP*P_ht(:,i)
         state_probability=P_zt_ht/(P_zt_ht(1,1)+P_zt_ht(2,1));
         
         if(state_probability(1,1)>state_probability(2,1))
