@@ -10,33 +10,17 @@ cp2=1.9;
 % k=1/(1/0.85+1/1.7);
 k=0.6;
 s=11.511;
-
 dt=1;
+
 N=200;
-
-%====================================================================
-A=[1-(m1*cp1+k*s)*dt/(M1*cp1)  k*s*dt/(M1*cp1)
-      k*s*dt/(M2*cp2)     1-(m2*cp2+k*s)*dt/(M2*cp2)];
-  
-B=[m1*cp1*dt/(M1*cp1)   0
-      0    m2*cp2*dt/(M2*cp2)];
-  
-
-
 H=eye(4);
 
-I=[1 0
-   0 1];  
- 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %the initiation
 Active_GE_pos=zeros(1,4); 
 count=0;
 I_p=eye(8);
-X_state=zeros(8,N+1);
-Y_measure=zeros(4,N+1);
 X_star=zeros(8,N);
-X_true=zeros(8,N);
 delta_Rt=zeros(4,N);
 Sigma_rt=zeros(4,4);
 Z=zeros(4,N);
@@ -44,18 +28,6 @@ bool_value=zeros(4,N);
 Z_tip_beta=zeros(4,N);
 sqr_sigma_0 =zeros(4,N);%every row is the diag value
 sqr_sigma_1 =zeros(4,N);%every row is the diag value
-%__________________________________________________________________________
-
-Q_state=0.002*eye(4);%where [290,350,305,330] is the true value |
-RY=diag([0.007,0.007,0.007,0.007]);%5*eye(4);the covariance of the measurement
-
-Q_beta=0.002*eye(4);%control the covriance of random walk(the gross error)
-%---------------------|
-beta_s=[0 0 0 0]' ;  %| it also should be a matrix(4,1)
-%---------------------|
-%__________________________________________________________________________
-
-
 %==========================================================================
 %get the state matrix
 %[Uw_k      1      0                         0                     0                            0  0  0  0
@@ -80,45 +52,24 @@ A_star=[1                    0                         0                     0  
 
 H_star=[eye(4),diag([0 0 0 0])];%this means no gross error.
 %==========================================================================
+%__________________________________________________________________________
 
-%get the errors
-%-----------------------------------|
-% w_state=sqrt(Q_state)*randn(4,N);%|
-w_state=normrnd(0,sqrt(Q_state(1)),4,N);
-%-----------------------------------|
-%-----------------------------------|
-% V_t=sqrt(RY)*randn(4,N);
-V_t=normrnd(0,sqrt(RY(1)),4,N);
-%-----------------------------------|
-%-----------------------------------|
-% w_beta=sqrt(Q_beta)*randn(4,N);
-w_beta=normrnd(0,sqrt(Q_beta(1)),4,N);
-%-----------------------------------|
-W=[w_state;w_beta];
-%-----------------
 
-%==========================================================================
-%the initial value
-Tin_1=290;
-Tin_2=350;
-To_1=305;
-To_2=330;
-beta_in1=5;
-beta_in2=5;
-beta_ot1=5;
-beta_ot2=5;
-X_state(:,1)=[Tin_1; Tin_2; To_1; To_2; beta_in1; beta_in2; beta_ot1; beta_ot2];
-X_true(:,1)=X_state(:,1);
-%get the measure of every sample time.
-for i=1:N-1
-    X_true(:,i+1)=A_star*X_state(:,i);
-    X_state(:,i+1)=A_star*X_state(:,i)+W(i);
-    Y_measure(:,i)=H_star*X_state(:,i)+V_t(i);
-end
-Y_measure(:,N)=H_star*X_state(:,N)+V_t(N);
-   
+Q_state=0.002*eye(4);%where [290,350,305,330] is the true value
+RY=diag([0.007,0.007,0.007,0.007]);%5*eye(4);the covariance of the measurement
+
+MSE=[35 35 35 35]';
+% Q_beta=0.002*eye(4);%control the covriance of random walk(the gross error)
+
+%---------------------|
+beta_s=[0 0 0 0]' ;  %| it also should be a matrix(4,1)
+%---------------------|
+%__________________________________________________________________________
+[X_true,Y_measure,Beta]=cal_measeure_and_true_beta(N,Q_state,RY,MSE);
+
 load('y_measure.mat')
 load('x_true.mat')
+load('beta.mat')
 temp=Y_measure;
 
 
@@ -130,15 +81,15 @@ M_a=diag(Active_GE_pos);
 Kerr=1000; %=actually I dont know how to choose the Kerr
 %========
 RY_a=(Kerr-1)*M_a*RY+RY;
-Q_a=diag([diag(Q_state)',diag(Q_beta)']);
-X_star_0=X_state(:,1);
+Q_a=diag([diag(Q_state)',MSE']);
+X_star_0=[Y_measure(:,1)' Beta(:,1)']';
 % P_t_min_1=cov(X_state');
 P_t_min_1=0.01*eye(8);
 %cal sigma_infinate
 sigma_infinate=cal_sigma_infinate(H_star,A_star,RY_a,Q_a,P_t_min_1,N);
 %==========================================================================
 
-MSE=[35 35 35 35]';
+
 %--------------------------|
 pi 	= [0.9 0.1;
        0.9 0.1;
@@ -148,8 +99,8 @@ pi 	= [0.9 0.1;
 beta_c=1*ones(4,1);         
 %--------------------------|
 % P_z_t=zeros(4,4);
-P_z_t=0.01*eye(4,4);
-Q_z=0.005*eye(4);
+P_z_t=0.1*eye(4,4);
+Q_z=0*eye(4);
 
 
 %==========================================================================
