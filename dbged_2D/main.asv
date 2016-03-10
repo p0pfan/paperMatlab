@@ -20,7 +20,7 @@ To_2=330;
 
 bo_1=0;
 b0_2=0;
-N=50;
+N=100;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %the initiation
 H=eye(2);
@@ -59,6 +59,7 @@ H_star=[eye(2) diag([0 0])];
 Q_state=0.02*eye(2);%where [290,350,305,330] is the true value
 RY=diag([0.7,0.7]);%5*eye(4);the covariance of the measurement
 
+% MSE=[10 10]';
 MSE=[35 35]';
 % Q_beta=0.002*eye(4);%control the covriance of random walk(the gross error)
 
@@ -68,14 +69,15 @@ beta_s=[0 0]' ;  %| it also should be a matrix(4,1)
 %__________________________________________________________________________
 [X_true,Y_measure,Beta]=cal_measeure_and_true_beta(N,Q_state,RY,MSE);
 
-% load('y_measure.mat')
-% load('x_true.mat')
+load('y_measure.mat')
+load('x_true.mat')
 % load('beta.mat')
 temp=Y_measure;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
- Y_measure(1,20:30)=temp(1,20:30)+Beta(1,20:30);
-
-
+one=ones(2,N);
+ Y_measure(1,20:50)=temp(1,20:50)+Beta(1,20:50);
+%  Y_measure(2,70:80)=temp(2,70:80)+Beta(2,70:80);
+Y_measure(2,70:80)=temp(2,70:80)+6*one(2,70:80);
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 Active_GE_pos=zeros(1,2);
@@ -89,19 +91,20 @@ RY_a=(Kerr-1)*M_a*RY+RY;
 Q_a=diag([diag(Q_state)',MSE']);
 X_star_0=[Y_measure(:,1)' Beta(:,1)']';
 % P_t_min_1=cov(X_state');
-P_t_min_1=diag([0.36,0.43,0.01,0.01])%0.01*eye(4);
+P_t_min_1=diag([0.36,0.43,0.1,0.1])%0.01*eye(4);
 %cal sigma_infinate
 sigma_infinate=cal_sigma_infinate(H_star,A_star,RY_a,Q_a,P_t_min_1,N);
+sigma_infinate=[0.650553818992836,-0.0230089260714441;-0.0230089260714441,0.647115929037386;];
 %==========================================================================
 %--------------------------|
-pi 	= [0.9 0.1;
-       0.9 0.1]';%2×2
+pi 	= [0.9 0.9;
+       0.1 0.1];%2×2
 %--------------------------|
-beta_c=1*ones(2,1);         
+beta_c=2*ones(2,1);         
 %--------------------------|
 % P_z_t=zeros(4,4);
-P_z_t=0.01*eye(2,2);
-Q_z=diag([1000000 1000000]);
+P_z_t=2*eye(2,2);
+Q_z=diag([0.005 0.007]);
 
 
 %==========================================================================
@@ -109,13 +112,16 @@ Q_z=diag([1000000 1000000]);
 [V_z_c D_z_c]=eig(sigma_infinate);
 temp_inv_D_z_c=sqrt(D_z_c)^-1;
 Z_c=V_z_c*temp_inv_D_z_c/V_z_c*beta_c;
-Z_c=0.15*ones(2,1);
+% Z_c=[2.524867344594904;
+%      2.531450500598172];
 %==========================================================================
 %the main part of kalman filter!
 
 temp_p_zt_ht=zeros(2,N);
-temp_Q=zeros(2*N,2);
+temp_Q=zeros(2*N,2); 
 temp_Q_beta=zeros(2*N,2);
+temp_rt=zeros(2,2*N);
+ temp_kk=zeros(4,2*N);
 for t=1:N
     
     %predict
@@ -127,28 +133,29 @@ for t=1:N
     S_k=H_star*P_k_k_minus_1*H_star'+RY_a;
     K_k=P_k_k_minus_1*H_star'/S_k;
     X_star(:,t)=X_tip_k_k_minus_1+K_k*y_tip_k;
-%     S_t=H_star*(A_star*P_t_min_1*A_star'+Q_a)*H_star'+RY_a;
-%    
-%     K_a=((A_star*P_t_min_1*A_star'+Q_a)*H_star')/S_t;
-%     
-%     X_star(:,t)=A_star*X_star_0+K_a*(Y_measure(:,t)-H_star*X_star_0);
-%     
+   
     delta_Rt(:,t)=Y_measure(:,t)-beta_s-H_star*X_star(:,t);
-  
+    for n=1:2
+       if delta_Rt(n,t)
+    end
     Sigma_rt=resiual_error_cov(H_star,A_star,RY_a,K_k,Q_a,P_t_min_1,Kerr);
-  
+    temp_rt(:,2*t-1:2*t)=Sigma_rt;
     [V D]=eig(Sigma_rt);
     temp_inv_D=sqrt(D)^-1;
+    temp_kk(:,2*t-1:2*t)=K_k;
     Z(:,t)=V*temp_inv_D/V*delta_Rt(:,t);
-  
+
     if (t==1)
         temp_Z_tip_beta=Z(:,t);
     end
    
     [Q_z_t,Q_beta_t]=cal_Qz_Qbeta(Q_z,temp_Z_tip_beta,sigma_infinate,Z_c);
-    temp_Q(2*t-1:2*t,:)=
-    [Z_tip_beta(:,t),temp_P_z_t]=EWMAF(Q_z_t,P_z_t,Z(:,t),temp_Z_tip_beta)
     
+    temp_Q(2*t-1:2*t,:)=Q_z_t;
+    temp_Q_beta(2*t-1:2*t,:)=Q_beta_t;
+%     [Z_tip_beta(:,t),temp_P_z_t]=EWMAF(Q_z_t,P_z_t,Z(:,t),temp_Z_tip_beta)
+    [Z_tip_beta(:,t),temp_P_z_t]=EWMAF(Q_z,P_z_t,Z(:,t),temp_Z_tip_beta)
+
     sqr_sigma_0(:,t)=diag(temp_P_z_t);
 
     sqr_sigma_1(:,t)=Sigma_one(MSE,Sigma_rt,sqr_sigma_0(:,t));
@@ -212,6 +219,12 @@ plot(1:N,bool_value(2,:),'-.')
 figure(3)
 plot(1:length(X_star(2,:)),X_star(2,:),'g*',1:length(Y_measure(2,:)),Y_measure(2,:),'b+',1:length(X_true(2,:)),X_true(2,:),'r-.')
 
-
+temp1=X_star(1,:)-X_true(1,:);
+temp2=X_star(2,:)-X_true(2,:);
+figure(4)
+subplot(2,1,1)
+plot(1:length(X_star(1,:)),temp1,'g*')
+subplot(2,1,2)
+plot(1:length(X_star(2,:)),temp2,'g*')
 
 
