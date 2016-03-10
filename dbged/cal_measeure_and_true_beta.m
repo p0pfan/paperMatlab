@@ -28,7 +28,7 @@ w_beta=zeros(4,N);
 for j=1:4
     w_state(j,:)=normrnd(0,sqrt(Q_state(j,j)),1,N);
     v(j,:)=normrnd(0,sqrt(RY(j,j)),1,N);
-    w_beta=normrnd(0,sqrt(MSE(j)),1,N);
+    w_beta(j,:)=normrnd(0,sqrt(MSE(j)),1,N);
 end
 A=[1                    0                         0                     0                          ;
   0                    1                         0                     0                          ;

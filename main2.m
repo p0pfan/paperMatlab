@@ -67,14 +67,12 @@ beta_s=[0 0 0 0]' ;  %| it also should be a matrix(4,1)
 %__________________________________________________________________________
 [X_true,Y_measure,Beta]=cal_measeure_and_true_beta(N,Q_state,RY,MSE);
 
-load('y_measure.mat')
-load('x_true.mat')
-load('beta.mat')
+% load('y_measure.mat')
+% load('x_true.mat')
+
 temp=Y_measure;
-static=ones(4,N);
 
 
-% Y_measure(4,20:N)=temp(4,20:N)+Beta(4,20:N)
 
 
 %==========================================================================
@@ -102,7 +100,7 @@ beta_c=1*ones(4,1);
 %--------------------------|
 % P_z_t=zeros(4,4);
 P_z_t=0.1*eye(4,4);
-Q_z=0.01*eye(4);
+Q_z=0*eye(4);
 
 
 %==========================================================================
@@ -110,7 +108,7 @@ Q_z=0.01*eye(4);
 [V_z_c D_z_c]=eig(sigma_infinate);
 temp_inv_D_z_c=sqrt(D_z_c)^-1;
 Z_c=V_z_c*temp_inv_D_z_c/V_z_c*beta_c;
-Z_c=3*ones(4,1)
+Z_c=0.3*ones(4,1)
 %==========================================================================
 %the main part of kalman filter!
 for t=1:N
@@ -178,7 +176,7 @@ for t=1:N
     P_t=(I_p-K_a*H_star)*(A_star*P_t_min_1*A_star'+Q_a);
     
     P_t_min_1=P_t; 
-%     beta_s=(eye(4)-diag(Active_GE_pos))*(Y_measure(:,t)-X_star(1:4,t))
+%     beta_s=Y_measure(:,t)-(eye(4)-diag(Active_GE_pos))*X_star(1:4,t)
     
 end
 
@@ -191,7 +189,7 @@ for j=1:4
 for t=1:N
     yy(j,t)=X_star(j,t)-X_true(j,t);
     yy0(j,t)=Y_measure(j,t)-temp(j,t);
-    yy1(j,t)=Y_measure(j,t)-X_true(j,t)
+    yy1(j,t)=Y_measure(j,t)-X_true(j,t);
 end
 
 end
@@ -225,7 +223,7 @@ plot(1:N,yy(4,:),'.')
 % axis([1,N+1,-5,5])
 
 figure(3)
-plot(1:length(X_star(4,:)),X_star(4,:),'g*',1:length(Y_measure(4,:)),Y_measure(4,:),'b+',1:length(X_true(4,:)),X_true(4,:),'r-.')
+plot(1:length(X_star(1,:)),X_star(1,:),'g*',1:length(Y_measure(1,:)),Y_measure(1,:),'b+',1:length(X_true(1,:)),X_true(1,:),'r-.')
 
 
 
