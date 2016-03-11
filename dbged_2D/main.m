@@ -75,10 +75,10 @@ load('x_true.mat')
 temp=Y_measure;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 one=ones(2,N);
-Y_measure(1,20:40)=temp(1,20:40)+10*one(1,20:40);
+Y_measure(1,20:N)=temp(1,20:N)+10*one(1,20:N);
 %  Y_measure(1,20:40)=temp(1,20:40)+Beta(1,20:40);
 %  Y_measure(2,70:80)=temp(2,70:80)+Beta(2,70:80);
-Y_measure(2,70:80)=temp(2,70:80)+6*one(2,70:80);
+% Y_measure(2,70:80)=temp(2,70:80)+6*one(2,70:80);
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 Active_GE_pos=zeros(1,2);
