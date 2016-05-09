@@ -1,4 +1,4 @@
-function onlyKalman()
+
 M1=10;
 M2=20;
 m1=0.947;
@@ -22,8 +22,8 @@ N=100;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %the initiation
 H=eye(2);
-I_p=eye(4);
-X_star=zeros(4,N);
+I_p=eye(2);
+X_star=zeros(2,N);
 delta_Rt=zeros(2,N);
 Sigma_rt=zeros(2,2);
 Z=zeros(2,N);
@@ -39,19 +39,15 @@ B=[m1*cp1*dt/(M1*cp1)   0
    0    m2*cp2*dt/(M2*cp2)];
 
 
-A_star=[1-(m1*cp1+k*s)*dt/(M1*cp1)  k*s*dt/(M1*cp1)              0  0;
-        k*s*dt/(M2*cp2)             1-(m2*cp2+k*s)*dt/(M2*cp2)   0  0;
-        0                           0                            1  0;
-        0                           0                            0  1;];
+A_star=[1-(m1*cp1+k*s)*dt/(M1*cp1)  k*s*dt/(M1*cp1)           ;
+        k*s*dt/(M2*cp2)             1-(m2*cp2+k*s)*dt/(M2*cp2);];
 
-B_star=[m1*cp1*dt/(M1*cp1)   0                        0       0;
-                        0    m2*cp2*dt/(M2*cp2)       0       0;
-                        0    0                        1       0;
-                        0    0                        0       1;];
+B_star=[m1*cp1*dt/(M1*cp1)   0                 ;
+                        0    m2*cp2*dt/(M2*cp2)];
 
-U_star=[Tin_1 Tin_2 0  0]';
+U_star=[Tin_1 Tin_2]';
 
-H_star=[eye(2) diag([0 0])];
+H_star=[eye(2)];
 %==========================================================================
 
 Q_state=0.02*eye(2);%where [290,350,305,330] is the true value
@@ -68,63 +64,46 @@ beta_s=[0 0]' ;  %| it also should be a matrix(4,1)
 
 load('y_measure.mat')
 load('x_true.mat')
-load('beta.mat')
+% load('beta.mat')
+load('beta_random_part.mat')
 temp=Y_measure;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-Y_measure(1,20:50)=temp(1,20:50)+Beta(1,20:50);
+% Y_measure(1,20:50)=temp(1,20:50)+Beta(1,20:50);
 one=ones(2,N);
 % Y_measure(2,70:80)=temp(2,70:80)+6*one(2,70:80);
-
+% Y_measure(1,50:N)=temp(1,50:N)+10*one(1,50:N);
+%  Y_measure(1,50:100)=temp(1,50:100)+Beta(1,50:100);
+% Y_measure(2,70:80)=temp(2,70:80)+6*one(2,70:80);
+% Y_measure(1,20:50)=temp(1,20:50)+Beta(1,20:50);
+Y_measure(2,70:80)=temp(2,70:80)+10*one(2,70:80);
+Y_measure(2,30:40)=temp(2,30:40)+Beta(2,30:40);
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     
-Active_GE_pos=zeros(1,2);
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %the first kalman
-X_star_0=[Y_measure(:,1)' Beta(:,1)']';
+X_star_0=Y_measure(:,1);
 % P_t_min_1=0*eye(4);
-P_t_min_1=diag([0.36,0.43,0.01,0.01]);
+P_t_min_1=diag([0.36,0.43]);
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %==========================================================================
-M_a=diag(Active_GE_pos);
+
 %========
 Kerr=1000; %=actually I dont know how to choose the Kerr
 %========
-RY_a=(Kerr-1)*M_a*RY+RY;
+RY_a=RY;
 
-Q_a=diag([diag(Q_state)',MSE']);
-
-
-
-%cal sigma_infinate
-sigma_infinate=cal_sigma_infinate(H_star,A_star,RY_a,Q_a,P_t_min_1,N);
-%==========================================================================
-%--------------------------|
-pi 	= [0.9 0.1;
-       0.9 0.1]';%2×2
-%--------------------------|
-beta_c=1*ones(2,1);         
-%--------------------------|
-% P_z_t=zeros(4,4);
-P_z_t=0.01*eye(2,2);
-Q_z=diag([3 3]);
+Q_a=diag(diag(Q_state)');
 
 
-%==========================================================================
-%cal Z_c
-[V_z_c D_z_c]=eig(sigma_infinate);
-temp_inv_D_z_c=sqrt(D_z_c)^-1;
-Z_c=V_z_c*temp_inv_D_z_c/V_z_c*beta_c;
-Z_c=0.15*ones(2,1);
-%==========================================================================
-%the main part of kalman filter!
 
-temp_p_zt_ht=zeros(2,N);
-temp_Q=zeros(2*N,2);
-temp_Q_beta=zeros(2*N,2);
-temp_pt=zeros(4,4*N);
-temp_sigmart=zeros(2,2*N)
+temp_pt=zeros(2,2*N);
+
+
+
+%****
+% k_change=zeros()
 for t=1:N
     
     %predict
@@ -144,32 +123,31 @@ for t=1:N
 %     
     delta_Rt(:,t)=Y_measure(:,t)-beta_s-H_star*X_star_0;
   
-    Sigma_rt=resiual_error_cov(H_star,A_star,RY_a,K_k,Q_a,P_t_min_1,Kerr);
-    temp_pt(:,4*t-3:4*t)=P_k_k_minus_1;
-    temp_sigmart(:,2*t-1:2*t)=Sigma_rt;
+    temp_pt(:,2*t-1:2*t)=P_k_k_minus_1;
+
     P_t=(I_p-K_k*H_star)*P_k_k_minus_1;
     X_star_0=X_star(:,t);
     P_t_min_1=P_t; 
 %     beta_s=(eye(2)-diag(Active_GE_pos))*(Y_measure(:,t)-X_star(1:2,t))
 %      beat_s(2,1)=Y_measure(2,t)-X_star(2,t)
-end
 
+end
 
 figure(1)
 plot(1:length(X_star(1,:)),X_star(1,:),'g*',1:length(Y_measure(1,:)),Y_measure(1,:),'b+',1:length(X_true(1,:)),X_true(1,:),'r-.')
 % 
+% % figure(2)
+% % subplot(2,1,1)
+% % plot(1:N,bool_value(1,:),':r')
+% % % axis([1,N+1,-0.2,1.5])
+% % 
+% % subplot(2,1,2)
+% % plot(1:N,bool_value(2,:),'-.')
+% % % axis([1,N+1,-0.2,1.5])
+% % 
 % figure(2)
-% subplot(2,1,1)
-% plot(1:N,bool_value(1,:),':r')
-% % axis([1,N+1,-0.2,1.5])
+% plot(1:length(delta_Rt(2,:)),delta_Rt(2,:),'g*')
 % 
-% subplot(2,1,2)
-% plot(1:N,bool_value(2,:),'-.')
-% % axis([1,N+1,-0.2,1.5])
-% 
-figure(2)
-plot(1:length(delta_Rt(2,:)),delta_Rt(2,:),'g*')
-
 
 figure(3)
 plot(1:length(X_star(2,:)),X_star(2,:),'g*',1:length(Y_measure(2,:)),Y_measure(2,:),'b+',1:length(X_true(2,:)),X_true(2,:),'r-.')

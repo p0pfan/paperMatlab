@@ -73,8 +73,9 @@ load('x_true.mat')
 load('beta.mat')
 temp=Y_measure;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% Y_measure(1,20:50)=temp(1,20:50)+Beta(1,20:50);
-
+Y_measure(1,20:50)=temp(1,20:50)+Beta(1,20:50);
+one=ones(2,N);
+% Y_measure(2,70:80)=temp(2,70:80)+6*one(2,70:80);
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     

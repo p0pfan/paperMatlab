@@ -42,8 +42,8 @@ q=0.002;
 for i=1:N
     real1(i)=To_in_1;
     real2(i)=To_in_2;
-    Tin_2(i)=normrnd(To_in_2,To_in_2*q);%350*0.002
-    Tin_1(i)=normrnd(To_in_1,To_in_1*q);%290*0.002
+    Tin_2(i)=normrnd(To_in_2,To_in_2*q)%350*0.002
+    Tin_1(i)=normrnd(To_in_1,To_in_1*q)%290*0.002
 end
 
 % P0=Tin_1(1)*q;
@@ -110,7 +110,7 @@ T22=normrnd(T2,T2*q);
 
 %  L=20;
 % T11(L)=T1(30)+10*(1-20*q);
-for i=20:40
+for i=20:N
     T11(i)=T1(i)+10;
 end
 
@@ -164,14 +164,14 @@ for i=2:N
    end
 %            R=[(x(1,i+1)*q)^2   0
 %      0      (x(2,i+1)*q)^2];
-% 
-  R=[R(1,1)  0
-      0    R(2,2)];
+% % 
+%   R=[R(1,1)  0
+%       0    R(2,2)];
  %=====================================================
 %       R=[(x(1,i+1)*q2)^2*(c^2+r(1)^2)/(2*c^2)   0
 %      0      (x(2,i+1)*q1)^2*(c^2+r(2)^2)/(2*c^2)];     
-%         R=[(x(1,i+1)*q)^2*(c^2+r(1)^2)/(2*c^2)   0
-%        0      (x(2,i+1)*q)^2*(c^2+r(2)^2)/(2*c^2)];  
+        R=[(x(1,i+1)*q)^2*(c^2+r(1)^2)/(2*c^2)   0
+       0      (x(2,i+1)*q)^2*(c^2+r(2)^2)/(2*c^2)];  
 %=======================================================
 K_k=P_k*H'*inv(H*P_k*H'+R);
 y(:,i+1)=y(:,i+1)+K_k*(x(:,i+1)-y(:,i+1));
@@ -190,7 +190,7 @@ figure
  t2=load('ben.txt');
 plot(1:length(T2),T2,'k:',1:length(x(2,:)),x(2,:),'k*',1:length(y(2,:)),y(2,:),'k-',1:length(t2),t2,'k.')
 %  title('苯出口温度校正曲线')  
-axis([1,51,318,334])
+% axis([1,51,318,334])
   xlabel('Time/s')
   ylabel('Output temperature of benzene/K')
 legend('True value','Measurements','Reconciled value 1','Reconciled value 2')

@@ -60,7 +60,7 @@ Q_state=0.02*eye(2);%where [290,350,305,330] is the true value
 RY=diag([0.7,0.7]);%5*eye(4);the covariance of the measurement
 
 % MSE=[10 10]';
-MSE=[25 25]';
+MSE=[35 35]';
 % Q_beta=0.002*eye(4);%control the covriance of random walk(the gross error)
 
 %---------------------|
@@ -71,14 +71,16 @@ beta_s=[0 0]' ;  %| it also should be a matrix(4,1)
 
 load('y_measure.mat')
 load('x_true.mat')
-% load('beta.mat')
+% load('beta3')
+load('beta_random_part.mat')
 temp=Y_measure;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 one=ones(2,N);
-Y_measure(1,20:N)=temp(1,20:N)+10*one(1,20:N);
-%  Y_measure(1,20:40)=temp(1,20:40)+Beta(1,20:40);
-%  Y_measure(2,70:80)=temp(2,70:80)+Beta(2,70:80);
-% Y_measure(2,70:80)=temp(2,70:80)+6*one(2,70:80);
+% Y_measure(1,50:N)=temp(1,50:N)+10*one(1,50:N);
+%  Y_measure(1,30:60)=temp(1,30:60)+Beta(1,30:60);
+ Y_measure(2,70:80)=temp(2,70:80)+Beta(2,70:80);
+% Y_measure(2,70:80)=temp(2,70:80)+Beta(2,70:80);
+% Y_measure(2,30:40)=temp(2,30:40)+Beta(2,30:40);
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 Active_GE_pos=zeros(1,2);
@@ -123,6 +125,8 @@ temp_Q=zeros(2*N,2);
 temp_Q_beta=zeros(2*N,2);
 temp_rt=zeros(2,2*N);
  temp_kk=zeros(4,2*N);
+ temp_RRR=zeros(2,2*N);
+ temp_QQQ=zeros(4,4*N)
 for t=1:N
     
     %predict
@@ -134,6 +138,11 @@ for t=1:N
     S_k=H_star*P_k_k_minus_1*H_star'+RY_a;
     K_k=P_k_k_minus_1*H_star'/S_k;
     X_star(:,t)=X_tip_k_k_minus_1+K_k*y_tip_k;
+    
+    
+   temp_RRR(:,2*t-1:2*t)=RY_a;
+   temp_QQQ(:,4*t-3:4*t)=Q_a;
+   
    
     delta_Rt(:,t)=Y_measure(:,t)-beta_s-H_star*X_star(:,t);
     for n=1:2
@@ -204,30 +213,37 @@ for t=1:N
 %     beat_s(2,1)=Y_measure(2,t)-X_star(2,t)
 end
 
+[onlyKalmanKKK,onlyKalman]=onlyKalman();
 
 figure(1)
-plot(1:length(X_star(1,:)),X_star(1,:),'g*',1:length(Y_measure(1,:)),Y_measure(1,:),'b+',1:length(X_true(1,:)),X_true(1,:),'r-.')
+
+plot(1:length(X_star(1,:)),X_star(1,:),'g*',1:length(Y_measure(1,:)),Y_measure(1,:),'b+',1:length(onlyKalman(1,:)),onlyKalman(1,:),'k-',1:length(X_true(1,:)),X_true(1,:),'r-.')
+title('冷却水出口温度校正曲线') 
+ylabel('Output temperature of cooling water/K')
+legend('Base on dynamic Bayesian dectection','Measurements','Kalman Reconciled Value','True Value')
+
+figure(3)
+plot(1:length(X_star(2,:)),X_star(2,:),'g*',1:length(Y_measure(2,:)),Y_measure(2,:),'b+',1:length(onlyKalman(2,:)),onlyKalman(2,:),'k-',1:length(X_true(2,:)),X_true(2,:),'r-.')
+title('苯出口温度校正曲线')
+ylabel('Output temperature of benzene/K')
+legend('Base on dynamic Bayesian dectection','Measurements','Kalman Reconciled Value','True Value')
+
 
 figure(2)
 subplot(2,1,1)
 plot(1:N,bool_value(1,:),':r')
+ylabel('Probability')
 % axis([1,N+1,-0.2,1.5])
-
 subplot(2,1,2)
 plot(1:N,bool_value(2,:),'-.')
+ylabel('Probability')
 % axis([1,N+1,-0.2,1.5])
 
 
-
-figure(3)
-plot(1:length(X_star(2,:)),X_star(2,:),'g*',1:length(Y_measure(2,:)),Y_measure(2,:),'b+',1:length(X_true(2,:)),X_true(2,:),'r-.')
-
-temp1=X_star(1,:)-X_true(1,:);
-temp2=X_star(2,:)-X_true(2,:);
-figure(4)
-subplot(2,1,1)
-plot(1:length(X_star(1,:)),temp1,'g*')
-subplot(2,1,2)
-plot(1:length(X_star(2,:)),temp2,'g*')
+% figure(4)
+% subplot(2,1,1)
+% plot(1:length(X_star(1,:)),temp1,'g*')
+% subplot(2,1,2)
+% plot(1:length(X_star(2,:)),temp2,'g*')
 
 
